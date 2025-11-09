@@ -5,6 +5,9 @@ const apiRoutes = require('./routes');
 
 const app = express(); //calls the above returned function to create an Express application instance (commonly named app). app is an object which represents my web application/serverno with methods like .get(), .post(), .use(), .listen(), etc.
 
+app.use(express.json()); //middleware that parses incoming JSON requests and puts the parsed data in req.body
+app.use(express.urlencoded({extended: true})); //middleware that parses incoming requests with URL-encoded payloads and is based on body-parser
+
 app.use('/api', apiRoutes);
 
 
