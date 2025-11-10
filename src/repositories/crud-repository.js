@@ -35,6 +35,9 @@ class CrudRepository {
 
     async update(id, data) { // data-> {colName: colValue, .....}
         const response = await this.model.update(data, {where: {id : id}});
+        if(!response){
+            throw new AppError("Data not found", StatusCodes.NOT_FOUND);
+        }
         return response; 
     }
     
