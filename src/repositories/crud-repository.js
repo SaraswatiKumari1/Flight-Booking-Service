@@ -1,3 +1,5 @@
+const { StatusCodes } = require('http-status-codes');
+const AppError = require('../utils/errors/app-error');
 const logger = require('../config');
 
 class CrudRepository {
@@ -6,53 +8,31 @@ class CrudRepository {
     }
 
     async create(data) {
-        try{
-            const response = await this.model.create(data);
-            return response;
-        }catch(error){
-            logger.error('Error in crud repo : create');
-            throw error;
-        }  
+        const response = await this.model.create(data);
+        return response; 
     }
 
     async destroy(data) {
-        try{
-            const response = await this.model.destroy({where: {id : data}});
-            return response;
-        }catch(error){
-            logger.error('Error in crud repo : destroy');
-            throw error;
-        }  
+        const response = await this.model.destroy({where: {id : data}});
+        return response; 
     }
 
     async get(data) {
-        try{
-            const response = await this.model.findByPk(data);
-            return response;
-        }catch(error){
-            logger.error('Error in crud repo : get');
-            throw error;
-        }  
+        const response = await this.model.findByPk(data);
+        if(!response){
+            throw new AppError("Data not found", StatusCodes.NOT_FOUND);
+        }
+        return response;  
     }
 
-    async getAll(data) {
-        try{
-            const response = await this.model.findAll(data);
-            return response;
-        }catch(error){
-            logger.error('Error in crud repo : getAll');
-            throw error;
-        }  
-    }
+    async getAll() {
+        const response = await this.model.findAll();
+        return response; 
+}
 
     async update(id, data) { // data-> {colName: colValue, .....}
-        try{
-            const response = await this.model.update(data, {where: {id : id}});
-            return response;
-        }catch(error){
-            logger.error('Error in crud repo : update');
-            throw error;
-        }  
+        const response = await this.model.update(data, {where: {id : id}});
+        return response; 
     }
     
 }
