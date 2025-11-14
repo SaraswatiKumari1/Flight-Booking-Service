@@ -1,0 +1,94 @@
+const {StatusCodes} = require('http-status-codes');
+const { FlightRepository} = require('../repositories');
+const AppError = require('../utils/errors/app-error');
+const {compareTime} = require('../utils/helpers/datetime-helpers');
+const { Op } = require('sequelize');
+
+const flightRepository = new FlightRepository();
+
+async function createFlight(data){
+    try{
+        if(data.arrivalTime == data.departureTime){
+            throw new AppError("Arrival time and Departure time cannot be the same", StatusCodes.BAD_REQUEST);
+            
+        }
+        else if(!compareTime(data.arrivalTime, data.departureTime)){
+            throw new AppError("Arrival time cannot be before departure time", StatusCodes.BAD_REQUEST);
+            
+        }
+        
+        const flight = await flightRepository.create(data);
+        return flight;
+    }catch(error){
+        //console.log("Got error", error);
+         if(error instanceof AppError){
+            throw error;   
+        }
+        if(error.name == 'SequelizeValidationError'){
+            let description = [];
+            error.errors.forEach((err) => {
+                description.push(err.message);
+            });
+            throw new AppError(description, StatusCodes.BAD_REQUEST);
+        }
+        throw new AppError("Cannot create a new Flight object", StatusCodes.INTERNAL_SERVER_ERROR);
+        
+    }
+}
+
+async function getAllFlights(query){
+    let customFilter = {};
+    const endingTripTime = " 23:59:00";
+    let sortfilter = [];
+
+    //trips: MUM-DEL;
+    if(query.trips){
+        [departureAirportId, arrivalAirportId] = query.trips.split("-");
+        if(departureAirportId == arrivalAirportId){
+           throw new AppError("Departure and Arrival airports cannot be the same", StatusCodes.BAD_REQUEST);
+        }
+        customFilter.departureAirportId = departureAirportId;
+        customFilter.arrivalAirportId = arrivalAirportId;
+    }
+
+    //price:500-700
+    if(query.price){
+        const [minPrice, maxPrice] = query.price.split("-");
+        customFilter.price = {
+            [Op.between]: [(minPrice = minPrice ? minPrice : 0), ((maxPrice == undefined)? 100000:maxPrice)]
+        };
+    }
+
+    if(query.travellers){
+        customFilter.totalSeats = {
+            [Op.gte]: query.travellers
+        };
+    }
+
+    if(query.tripDate){
+        customFilter.departureTime = {
+            [Op.between]: [query.tripDate, query.tripDate + endingTripTime]
+        };
+    }
+
+    if(query.sort) {
+        const params = query.sort.split(",");
+        //console.log("Sort params:", params);  [ 'departureTime_ASC', 'price_DESC' ]
+        const sortFilters = params.map((param) => param.split("_"));
+        //console.log("Sort filters:", sortFilters);    [ [ 'departureTime', 'ASC' ], [ 'price', 'DESC' ] ]
+        sortfilter = sortFilters;
+        //pricefilter will be only applied if there are multiple flights with same departure time
+    }
+    try{
+        const flights = await flightRepository.getAllFlights(customFilter, sortfilter);
+        return flights;
+    }catch(error){
+        throw new AppError("Cannot fetch data of all flights", StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+
+}
+
+module.exports = {
+    createFlight,
+    getAllFlights
+}
