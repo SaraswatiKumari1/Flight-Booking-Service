@@ -11,6 +11,7 @@ app.use(express.urlencoded({extended: true})); //middleware that parses incoming
 app.use('/api', apiRoutes);
 
 
+
 // console.log(process.env);
 app.listen(ServerConfig.PORT, () => {
     console.log(`Successfully started the server on PORT : ${ServerConfig.PORT}`);
